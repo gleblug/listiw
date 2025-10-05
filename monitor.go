@@ -37,8 +37,7 @@ func blockUser(username string) {
 	log.Printf("Blocking user: %s", username)
 
 	// Используем PowerShell для выполнения shutdown
-	psCommand := "-Command \"shutdown.exe /l\""
-	cmd := exec.Command("powershell.exe", psCommand)
+	cmd := exec.Command("shutdown.exe", "/l")
 	output, err := cmd.CombinedOutput()
 
 	log.Printf("Shutdown output: %s", strings.TrimSpace(string(output)))
