@@ -1,24 +1,35 @@
 package main
 
 import (
-	"bytes"
 	"log"
 	"os/exec"
+	"strings"
 	"time"
 )
 
 // isUserLoggedIn проверяет, залогинен ли пользователь
 func isUserLoggedIn(username string) bool {
-	// Выполняем команду query user для получения списка активных сессий
-	cmd := exec.Command("query", "user")
+	// Проверяем наличие процесса explorer.exe для данного пользователя
+	// explorer.exe всегда запущен когда пользователь залогинен
+	psCommand := "(Get-Process explorer -IncludeUserName -ErrorAction SilentlyContinue | Where-Object {$_.UserName -like '*\\" + username + "'}).Count -gt 0"
+	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", psCommand)
 	output, err := cmd.Output()
 	if err != nil {
-		log.Printf("Error querying users: %v", err)
+		log.Printf("Error checking user login status: %v", err)
 		return false
 	}
 
-	// Проверяем, есть ли username в выводе
-	return bytes.Contains(bytes.ToLower(output), bytes.ToLower([]byte(username)))
+	// PowerShell вернет "True" или "False"
+	result := strings.TrimSpace(string(output))
+	isLoggedIn := strings.EqualFold(result, "True")
+
+	if isLoggedIn {
+		log.Printf("User %s is logged in (explorer.exe found)", username)
+	} else {
+		log.Printf("User %s is not logged in (no explorer.exe)", username)
+	}
+
+	return isLoggedIn
 }
 
 // blockUser блокирует пользователя Windows

