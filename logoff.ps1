@@ -2,4 +2,4 @@
 # This script is called when time limit is exceeded
 
 Write-Output "Executing logoff..."
-& C:\Windows\System32\shutdown.exe /l /t 20 /f
+& C:\Windows\System32\shutdown.exe /l
