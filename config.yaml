@@ -1,0 +1,11 @@
+# Screen Time Control - Configuration File
+
+telegram:
+  bot_token: "YOUR_BOT_TOKEN"
+  admin_id: 123456789
+
+time_limit:
+  daily_minutes: 180  # 3 hours by default
+
+windows:
+  username: "TargetUser"  # Windows username to control
