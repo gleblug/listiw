@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -31,6 +35,20 @@ func startTelegramBot(config *Config, timeData *TimeData, dataPath string) {
 		log.Printf("Failed to send startup notification: %v", err)
 	}
 
+	// Настройка graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Обработка сигналов завершения
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	go func() {
+		<-sigChan
+		log.Println("Received shutdown signal")
+		cancel()
+	}()
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
@@ -38,7 +56,7 @@ func startTelegramBot(config *Config, timeData *TimeData, dataPath string) {
 
 	log.Println("Telegram bot is ready to receive commands")
 
-	// Обработка graceful shutdown
+	// Обработка graceful shutdown при выходе
 	defer func() {
 		log.Println("Telegram bot shutting down...")
 		stopMsg := tgbotapi.NewMessage(config.Telegram.AdminID,
@@ -46,29 +64,45 @@ func startTelegramBot(config *Config, timeData *TimeData, dataPath string) {
 				"Бот больше не активен.\n"+
 				"Мониторинг времени приостановлен.")
 		bot.Send(stopMsg)
+		bot.StopReceivingUpdates()
 	}()
 
-	for update := range updates {
-		if update.Message == nil {
-			continue
-		}
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("Context cancelled, stopping bot")
+			return
+		case update := <-updates:
+			if update.Message == nil {
+				continue
+			}
 
-		// Проверка прав администратора
-		if update.Message.From.ID != config.Telegram.AdminID {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "❌ Доступ запрещён. Вы не являетесь администратором.")
-			bot.Send(msg)
-			log.Printf("Unauthorized access attempt from user ID: %d", update.Message.From.ID)
-			continue
-		}
+			// Проверка прав администратора
+			if update.Message.From.ID != config.Telegram.AdminID {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "❌ Доступ запрещён. Вы не являетесь администратором.")
+				bot.Send(msg)
+				log.Printf("Unauthorized access attempt from user ID: %d", update.Message.From.ID)
+				continue
+			}
 
-		// Обработка команд
-		handleCommand(bot, update.Message, config, timeData, dataPath)
+			// Обработка команд
+			handleCommand(bot, update.Message, config, dataPath)
+		}
 	}
 }
 
 // handleCommand обрабатывает команды Telegram бота
-func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, config *Config, timeData *TimeData, dataPath string) {
+func handleCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, config *Config, dataPath string) {
 	log.Printf("Received command from admin: %s", msg.Text)
+
+	// Перечитываем актуальные данные из файла перед каждой командой
+	timeData, err := loadTimeData(dataPath, config.TimeLimit.DailyMinutes)
+	if err != nil {
+		log.Printf("Error loading time data: %v", err)
+		reply := tgbotapi.NewMessage(msg.Chat.ID, "❌ Ошибка загрузки данных")
+		bot.Send(reply)
+		return
+	}
 
 	var responseText string
 

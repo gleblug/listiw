@@ -36,8 +36,16 @@ func main() {
 
 	dataPath = filepath.Join(exeDir, "timedata.json")
 
-	// Настройка логирования в файл
-	logPath := filepath.Join(exeDir, "service.log")
+	// Настройка логирования в файл в зависимости от режима
+	var logPath string
+	if *botMode {
+		logPath = filepath.Join(exeDir, "bot.log")
+	} else if *monitorMode {
+		logPath = filepath.Join(exeDir, "monitor.log")
+	} else {
+		logPath = filepath.Join(exeDir, "service.log")
+	}
+
 	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		log.SetOutput(logFile)
@@ -46,6 +54,7 @@ func main() {
 
 	log.Println("=== Screen Time Control Starting ===")
 	log.Printf("Mode: monitor=%v, bot=%v", *monitorMode, *botMode)
+	log.Printf("Log file: %s", logPath)
 	log.Printf("Config path: %s", configPath)
 	log.Printf("Data path: %s", dataPath)
 
