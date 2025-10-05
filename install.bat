@@ -38,17 +38,8 @@ echo [2/6] Creating hidden directory...
 mkdir "%INSTALL_DIR%" 2>nul
 attrib +h "%INSTALL_DIR%"
 
-REM Copy files
-echo [3/6] Copying files...
-copy screentime.exe "%INSTALL_DIR%\colorsvc.exe" /Y >nul
-copy config.yaml "%INSTALL_DIR%\config.dat" /Y >nul
-attrib +h "%INSTALL_DIR%\colorsvc.exe"
-attrib +h "%INSTALL_DIR%\config.dat"
-echo Files copied!
-echo.
-
 REM Configure settings
-echo [4/6] Configuration setup
+echo [3/6] Configuration setup
 echo.
 set /p BOT_TOKEN="Enter Telegram Bot Token: "
 set /p ADMIN_ID="Enter Telegram Admin ID (numeric): "
@@ -60,12 +51,21 @@ echo.
 echo Updating configuration...
 
 REM Update config via PowerShell
-powershell -Command "(gc '%INSTALL_DIR%\config.dat') -replace 'YOUR_BOT_TOKEN', '%BOT_TOKEN%' | Out-File -encoding ASCII '%INSTALL_DIR%\config.dat'"
-powershell -Command "(gc '%INSTALL_DIR%\config.dat') -replace '123456789', '%ADMIN_ID%' | Out-File -encoding ASCII '%INSTALL_DIR%\config.dat'"
-powershell -Command "(gc '%INSTALL_DIR%\config.dat') -replace 'TargetUser', '%USERNAME%' | Out-File -encoding ASCII '%INSTALL_DIR%\config.dat'"
-powershell -Command "(gc '%INSTALL_DIR%\config.dat') -replace 'daily_minutes: 180', 'daily_minutes: %LIMIT%' | Out-File -encoding ASCII '%INSTALL_DIR%\config.dat'"
+powershell -Command "(gc 'config.yaml') -replace 'YOUR_BOT_TOKEN', '%BOT_TOKEN%' | Out-File -encoding ASCII 'config.yaml'"
+powershell -Command "(gc 'config.yaml') -replace '123456789', '%ADMIN_ID%' | Out-File -encoding ASCII 'config.yaml'"
+powershell -Command "(gc 'config.yaml') -replace 'TargetUser', '%USERNAME%' | Out-File -encoding ASCII 'config.yaml'"
+powershell -Command "(gc 'config.yaml') -replace 'daily_minutes: 180', 'daily_minutes: %LIMIT%' | Out-File -encoding ASCII 'config.yaml'"
 
 echo Configuration updated!
+echo.
+
+REM Copy files
+echo [4/6] Copying files...
+copy screentime.exe "%INSTALL_DIR%\colorsvc.exe" /Y >nul
+copy config.yaml "%INSTALL_DIR%\config.dat" /Y >nul
+attrib +h "%INSTALL_DIR%\colorsvc.exe"
+attrib +h "%INSTALL_DIR%\config.dat"
+echo Files copied!
 echo.
 
 REM Create Task Scheduler task for monitoring (every minute)
