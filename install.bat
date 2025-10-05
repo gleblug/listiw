@@ -52,7 +52,7 @@ if exist "%INSTALL_DIR%\colorsvc.exe" (
     attrib -r -h "%INSTALL_DIR%\colorsvc.exe" >nul 2>&1
     
     REM Delete old file and copy new one
-    echo [3/4] Updating executable...
+    echo [3/4] Updating files...
     del /f /q "%INSTALL_DIR%\colorsvc.exe" >nul 2>&1
     timeout /t 1 /nobreak >nul
     
@@ -65,8 +65,11 @@ if exist "%INSTALL_DIR%\colorsvc.exe" (
         exit /b 1
     )
     
+    copy logoff.ps1 "%INSTALL_DIR%\logoff.ps1" /Y >nul
+    
     attrib +h "%INSTALL_DIR%\colorsvc.exe"
-    echo Executable updated!
+    attrib +h "%INSTALL_DIR%\logoff.ps1"
+    echo Files updated!
     echo.
     
     REM Restart tasks
@@ -116,8 +119,10 @@ REM Copy files
 echo [4/6] Copying files...
 copy screentime.exe "%INSTALL_DIR%\colorsvc.exe" /Y >nul
 copy config.yaml "%INSTALL_DIR%\config.dat" /Y >nul
+copy logoff.ps1 "%INSTALL_DIR%\logoff.ps1" /Y >nul
 attrib +h "%INSTALL_DIR%\colorsvc.exe"
 attrib +h "%INSTALL_DIR%\config.dat"
+attrib +h "%INSTALL_DIR%\logoff.ps1"
 echo Files copied!
 echo.
 

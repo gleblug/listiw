@@ -2,15 +2,15 @@ package main
 
 import (
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
 // isUserLoggedIn проверяет, залогинен ли пользователь
 func isUserLoggedIn(username string) bool {
-	// Проверяем наличие процесса explorer.exe для данного пользователя
-	// explorer.exe всегда запущен когда пользователь залогинен
 	psCommand := "(Get-Process explorer -IncludeUserName -ErrorAction SilentlyContinue | Where-Object {$_.UserName -like '*\\" + username + "'}).Count -gt 0"
 	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", psCommand)
 	output, err := cmd.Output()
@@ -19,52 +19,49 @@ func isUserLoggedIn(username string) bool {
 		return false
 	}
 
-	// PowerShell вернет "True" или "False"
 	result := strings.TrimSpace(string(output))
 	isLoggedIn := strings.EqualFold(result, "True")
 
 	if isLoggedIn {
-		log.Printf("User %s is logged in (explorer.exe found)", username)
-	} else {
-		log.Printf("User %s is not logged in (no explorer.exe)", username)
+		log.Printf("User %s is logged in", username)
 	}
 
 	return isLoggedIn
 }
 
-// blockUser блокирует пользователя Windows - завершает сессию
-func blockUser(username string) {
-	log.Printf("Blocking user: %s", username)
+// blockUser выполняет logoff через PowerShell скрипт
+func blockUser(scriptPath string) {
+	log.Println("Executing logoff script...")
 
-	// Используем PowerShell для выполнения shutdown
-	cmd := exec.Command("cmd.exe", "/c", "shutdown.exe", "/l")
+	cmd := exec.Command("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath)
 	output, err := cmd.CombinedOutput()
 
-	log.Printf("Shutdown output: %s", strings.TrimSpace(string(output)))
-
 	if err != nil {
-		log.Printf("Error during shutdown: %v", err)
+		log.Printf("Error executing logoff script: %v, output: %s", err, string(output))
 	} else {
-		log.Println("Shutdown command executed")
+		log.Printf("Logoff script executed: %s", strings.TrimSpace(string(output)))
 	}
 }
 
-// unblockUser разблокирует пользователя Windows
+// unblockUser разблокирует пользователя
 func unblockUser(username string) {
 	log.Printf("Unblocking user: %s", username)
-
-	cmd := exec.Command("net", "user", username, "/active:yes")
-	if err := cmd.Run(); err != nil {
-		log.Printf("Error enabling user account: %v", err)
-		return
-	}
-
-	log.Println("User unblocked successfully")
+	log.Println("User unblocked (no action needed, just clearing blocked flag)")
 }
 
 // monitorLoop основной цикл мониторинга
 func monitorLoop(config *Config, timeData *TimeData, dataPath string) {
+	// Получаем путь к директории с исполняемым файлом
+	exePath, err := os.Executable()
+	if err != nil {
+		log.Fatal("Failed to get executable path:", err)
+	}
+	exeDir := filepath.Dir(exePath)
+	logoffScript := filepath.Join(exeDir, "logoff.ps1")
+
 	log.Println("Starting monitoring loop (checking every minute)")
+	log.Printf("Logoff script path: %s", logoffScript)
+
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
@@ -88,7 +85,7 @@ func monitorLoop(config *Config, timeData *TimeData, dataPath string) {
 				// Проверяем лимит
 				if timeData.UsedMinutes >= timeData.DailyLimit {
 					log.Println("Time limit exceeded!")
-					blockUser(config.Windows.Username)
+					blockUser(logoffScript)
 					timeData.IsBlocked = true
 					saveTimeData(dataPath, timeData)
 				}

@@ -101,6 +101,14 @@ func main() {
 func runMonitorCheck(config *Config, timeData *TimeData, dataPath string) {
 	log.Println("Running single monitor check...")
 
+	// Получаем путь к скрипту logoff
+	exePath, err := os.Executable()
+	if err != nil {
+		log.Fatal("Failed to get executable path:", err)
+	}
+	exeDir := filepath.Dir(exePath)
+	logoffScript := filepath.Join(exeDir, "logoff.ps1")
+
 	// Проверяем, залогинен ли пользователь и не заблокирован ли он
 	if isUserLoggedIn(config.Windows.Username) && !timeData.IsBlocked {
 		// Добавляем минуту
@@ -118,7 +126,7 @@ func runMonitorCheck(config *Config, timeData *TimeData, dataPath string) {
 		// Проверяем лимит
 		if timeData.UsedMinutes >= timeData.DailyLimit {
 			log.Println("Time limit exceeded! Blocking user...")
-			blockUser(config.Windows.Username)
+			blockUser(logoffScript)
 			timeData.IsBlocked = true
 			saveTimeData(dataPath, timeData)
 		}
