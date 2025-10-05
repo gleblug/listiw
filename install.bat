@@ -44,12 +44,27 @@ if exist "%INSTALL_DIR%\colorsvc.exe" (
     echo Stopping running tasks...
     schtasks /end /tn "ColorProfileSync" >nul 2>&1
     schtasks /end /tn "ColorProfileService" >nul 2>&1
+
     taskkill /f /im colorsvc.exe >nul 2>&1
-    timeout /t 2 /nobreak >nul
+    timeout /t 1 /nobreak >nul
     
-    REM Copy only executable
+    REM Remove read-only attribute if present
+    attrib -r -h "%INSTALL_DIR%\colorsvc.exe" >nul 2>&1
+    
+    REM Delete old file and copy new one
     echo [3/4] Updating executable...
+    del /f /q "%INSTALL_DIR%\colorsvc.exe" >nul 2>&1
+    timeout /t 1 /nobreak >nul
+    
     copy screentime.exe "%INSTALL_DIR%\colorsvc.exe" /Y >nul
+    if %errorLevel% neq 0 (
+        echo ERROR: Failed to copy executable!
+        echo The file may still be in use.
+        echo Try rebooting and running install again.
+        pause
+        exit /b 1
+    )
+    
     attrib +h "%INSTALL_DIR%\colorsvc.exe"
     echo Executable updated!
     echo.
