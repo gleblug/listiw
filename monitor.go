@@ -32,18 +32,21 @@ func isUserLoggedIn(username string) bool {
 	return isLoggedIn
 }
 
-// blockUser блокирует пользователя Windows - завершает сессию через PowerShell
+// blockUser блокирует пользователя Windows - завершает сессию
 func blockUser(username string) {
 	log.Printf("Blocking user: %s", username)
 
-	// Используем PowerShell для выполнения logoff через shutdown.exe
-	psCommand := "Start-Process shutdown.exe -ArgumentList '/l','/f' -NoNewWindow -Wait"
+	// Используем PowerShell для выполнения shutdown
+	psCommand := "shutdown /l /t 20 /f"
 	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", psCommand)
 	output, err := cmd.CombinedOutput()
+
+	log.Printf("Shutdown output: %s", strings.TrimSpace(string(output)))
+
 	if err != nil {
-		log.Printf("Error logging off user: %v, output: %s", err, string(output))
+		log.Printf("Error during shutdown: %v", err)
 	} else {
-		log.Println("User session terminated successfully")
+		log.Println("Shutdown command executed")
 	}
 }
 
